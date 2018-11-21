@@ -210,8 +210,25 @@ instance Ord a => Semigroup (MultiSet a) where
       | otherwise = MS $ Map.map (* fromIntegral n) m
 #endif
 
+-- | Note that 'elem' is slower than 'member'.
 instance Foldable.Foldable MultiSet where
-    foldr = fold
+    fold = Map.foldMapWithKey (\x n -> stimes n x) . unMS -- Requires Semigroup => Monoid
+    foldMap f = Map.foldMapWithKey (\x n -> stimes n (f x)) . unMS -- Requires Semigroup => Monoid
+    -- foldMap' -- since base-4.13
+    foldr = foldr
+    -- foldr'
+    -- foldl
+    -- foldl'
+    -- foldr1
+    -- foldl1
+    toList = Map.foldMapWithKey (\x n -> replicate n x) . unMS
+    null = null
+    length = size
+    elem x = elem x . distinctElems
+    maximum = findMax
+    minimum = findMin
+    sum = Map.foldlWithKey' (\s x n -> s + (x * fromIntegral n)) 0 . unMS
+    product = Map.foldlWithKey' (\p x n -> p * (x ^ n)) 1 . unMS
 
 instance NFData a => NFData (MultiSet a) where
     rnf = rnf . unMS
@@ -244,7 +261,7 @@ null = Map.null . unMS
 
 -- | /O(n)/. The number of elements in the multiset.
 size :: MultiSet a -> Occur
-size = sum . Map.elems . unMS
+size = sum . unMS
 
 -- | /O(1)/. The number of distinct elements in the multiset.
 distinctSize :: MultiSet a -> Occur
