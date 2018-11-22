@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ < 710
 {-# OPTIONS_GHC -fno-warn-amp #-}
@@ -214,14 +215,19 @@ instance Ord a => Semigroup (MultiSet a) where
 instance Foldable.Foldable MultiSet where
     fold = Map.foldMapWithKey (\x n -> stimes n x) . unMS -- Requires Semigroup => Monoid
     foldMap f = Map.foldMapWithKey (\x n -> stimes n (f x)) . unMS -- Requires Semigroup => Monoid
-    -- foldMap' -- since base-4.13
     foldr = foldr
-    -- foldr'
-    -- foldl
-    -- foldl'
-    -- foldr1
-    -- foldl1
-    toList = Map.foldMapWithKey (\x n -> replicate n x) . unMS
+    foldr' f z = Map.foldrWithKey' repF z . unMS
+      where repF x 1 !acc = f x acc
+            repF x n !acc = repF x (n - 1) (f x acc)
+    foldl f z = Map.foldlWithKey repF z . unMS
+      where repF acc x 1 = f acc x
+            repF acc x n = repF (f acc x) x (n - 1)
+    foldl' f z = Map.foldlWithKey' repF z . unMS
+      where repF !acc x 1 = f acc x
+            repF !acc x n = repF (f acc x) x (n - 1)
+    foldr1 f = foldl1 f . toList
+    foldl1 f = foldr1 f . toList
+    toList = toList
     null = null
     length = size
     elem x = elem x . distinctElems
