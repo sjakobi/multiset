@@ -36,3 +36,17 @@ test-suite doctests
   build-depends:      Glob
                     , base >= 4 && < 5
                     , doctest
+
+test-suite multiset-properties
+  default-language:   Haskell2010
+  type:               exitcode-stdio-1.0
+  ghc-options:        -threaded
+  hs-source-dirs:     test
+  main-is:            multiset-properties.hs
+  build-depends:      Glob
+                    , QuickCheck
+                    , base
+                    , checkers >= 0.4.13
+                    , multiset
+                    , tasty
+                    , tasty-quickcheck
