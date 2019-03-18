@@ -144,9 +144,9 @@ import Prelude hiding (filter,foldr,null,map,concatMap)
 #if __GLASGOW_HASKELL__ < 710
 import Data.Monoid (Monoid(..))
 #endif
-#if MIN_VERSION_base(4,11,0)
+#if MIN_VERSION_base(4,9,0)
 import qualified Data.List.NonEmpty (toList)
-import Data.Semigroup (Semigroup(..))
+import Data.Semigroup (Semigroup(..), stimesMonoid)
 #endif
 import Data.Typeable ()
 import qualified Data.Foldable as Foldable
@@ -213,20 +213,31 @@ instance Ord a => Semigroup (MultiSet a) where
 
 -- | Note that 'elem' is slower than 'member'.
 instance Foldable.Foldable MultiSet where
-    fold = Map.foldMapWithKey (\x n -> stimes n x) . unMS -- Requires Semigroup => Monoid
-    foldMap f = Map.foldMapWithKey (\x n -> stimes n (f x)) . unMS -- Requires Semigroup => Monoid
     foldr = foldr
-    foldr' f z = Map.foldrWithKey' repF z . unMS
-      where repF x 1 !acc = f x acc
-            repF x n !acc = repF x (n - 1) (f x acc)
     foldl f z = Map.foldlWithKey repF z . unMS
       where repF acc x 1 = f acc x
             repF acc x n = repF (f acc x) x (n - 1)
+    foldr1 f = foldr1 f . toList
+    foldl1 f = foldl1 f . toList
+
+#if MIN_VERSION_base(4,11,0)
+    fold = Map.foldMapWithKey (\x n -> stimes n x) . unMS
+    foldMap f = Map.foldMapWithKey (\x n -> stimes n (f x)) . unMS
+#elif MIN_VERSION_base(4,9,0)
+    fold = Map.foldMapWithKey (\x n -> stimesMonoid n x) . unMS
+    foldMap f = Map.foldMapWithKey (\x n -> stimesMonoid n (f x)) . unMS
+#endif
+
+#if MIN_VERSION_base(4,6,0)
+    foldr' f z = Map.foldrWithKey' repF z . unMS
+      where repF x 1 !acc = f x acc
+            repF x n !acc = repF x (n - 1) (f x acc)
     foldl' f z = Map.foldlWithKey' repF z . unMS
       where repF !acc x 1 = f acc x
             repF !acc x n = repF (f acc x) x (n - 1)
-    foldr1 f = foldr1 f . toList
-    foldl1 f = foldl1 f . toList
+#endif
+
+#if MIN_VERSION_base(4,8,0)
     toList = toList
     null = null
     length = size
@@ -235,6 +246,7 @@ instance Foldable.Foldable MultiSet where
     minimum = findMin
     sum = Map.foldlWithKey' (\s x n -> s + (x * fromIntegral n)) 0 . unMS
     product = Map.foldlWithKey' (\p x n -> p * (x ^ n)) 1 . unMS
+#endif
 
 instance NFData a => NFData (MultiSet a) where
     rnf = rnf . unMS
@@ -267,7 +279,7 @@ null = Map.null . unMS
 
 -- | /O(n)/. The number of elements in the multiset.
 size :: MultiSet a -> Occur
-size = sum . unMS
+size = Map.foldl' (+) 0 . unMS
 
 -- | /O(1)/. The number of distinct elements in the multiset.
 distinctSize :: MultiSet a -> Occur
