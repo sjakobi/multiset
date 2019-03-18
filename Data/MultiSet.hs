@@ -225,8 +225,8 @@ instance Foldable.Foldable MultiSet where
     foldl' f z = Map.foldlWithKey' repF z . unMS
       where repF !acc x 1 = f acc x
             repF !acc x n = repF (f acc x) x (n - 1)
-    foldr1 f = foldl1 f . toList
-    foldl1 f = foldr1 f . toList
+    foldr1 f = foldr1 f . toList
+    foldl1 f = foldl1 f . toList
     toList = toList
     null = null
     length = size
