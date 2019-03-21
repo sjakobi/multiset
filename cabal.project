@@ -1,0 +1,6 @@
+packages: .
+
+source-repository-package
+    type: git
+    location: https://github.com/sjakobi/checkers.git
+    tag: a14d7acb8dd84c8771f57a7d90cb888c56457ca9
